@@ -10,7 +10,12 @@ fi
 # Do not change code above this line. Use the PSQL variable above to query your database.
 
 
-$PSQL "TRUNCATE teams CASCADE"
+TRUNCATE_RESULT=$($PSQL "TRUNCATE teams,games CASCADE")
+
+if [[ $TRUNCATE_RESULT = "TRUNCATE TABLE" ]]
+then
+	echo tabelas truncadas com sucesso
+fi
 
 while IFS=","  read YEAR ROUND WINNER OPPONENT WINNER_GOALS OPPONENT_GOALS	
 do
@@ -24,15 +29,13 @@ do
 		# try to find the team_id for winner team
 		WINNER_ID=$($PSQL "select team_id from teams where name = '$WINNER'")
 
-		# try to find the team_id for opponent temas
+		# try to find the team_id for opponent team
 		OPPONENT_ID=$($PSQL "select team_id from teams where name = '$OPPONENT'")
 
 		
 		# if winner_id not found
 		if [[ -z $WINNER_ID ]]
 		then
-
-			echo rodou o primeiro if
 
 			# insert winner team into teams table
 			$PSQL "INSERT INTO teams(name) VALUES ('$WINNER')"
@@ -54,5 +57,15 @@ do
 			
 			echo inserido na tabela de times o time: $OPPONENT:$OPPONENT_ID
 		fi
+
+
+		# insert complete row
+
+		INSERT_GAME_RESULT=$($PSQL "INSERT INTO games(year, round, winner_id, opponent_id, winner_goals, opponent_goals) VALUES ($YEAR, '$ROUND', $WINNER_ID, $OPPONENT_ID, $WINNER_GOALS, $OPPONENT_GOALS)")
+
+		if [[ $INSERT_GAME_RESULT = "INSERT 0 1" ]]
+		then
+			echo jogo inserido na base de dados
+		fi
 	fi
-done < games_test.csv
+done < games.csv
